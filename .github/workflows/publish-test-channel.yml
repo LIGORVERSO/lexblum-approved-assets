@@ -42,3 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REQUEST_PATH: ${{ steps.request.outputs.path }}
         run: node scripts/publish-test-channel.mjs "$REQUEST_PATH"
+      - name: Verify signed MT content over live Worker HTTPS
+        env:
+          REQUEST_PATH: ${{ steps.request.outputs.path }}
+        run: node scripts/verify-test-delivery.mjs "$REQUEST_PATH"
