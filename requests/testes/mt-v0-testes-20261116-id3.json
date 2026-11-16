@@ -1,0 +1,62 @@
+{
+  "schema": "lexblum.test-release-request.v1",
+  "channel": "TESTES",
+  "classification": "ENGINEERING_TEST_ONLY",
+  "repository": "LIGORVERSO/lexblum-approved-assets",
+  "tag": "mt-v0-testes-20261116-id3",
+  "publicKeyBase64": "ZZRd+okW/9sVGP/ugXnVVzedM4u43L1tXA5fwIiTeT8=",
+  "rightsReviewed": true,
+  "secretScanReviewed": true,
+  "assets": [
+    {
+      "name": "2e0487020d68ccf664435db9d829c78ae00e6d2785ee3ec10b9f89cc70a10406",
+      "size": 10172,
+      "sha256": "2e0487020d68ccf664435db9d829c78ae00e6d2785ee3ec10b9f89cc70a10406"
+    },
+    {
+      "name": "433b03d78a686ba6154a23a0121695a67e37f1c62de68a0d4d53cf10e0254e5e",
+      "size": 630,
+      "sha256": "433b03d78a686ba6154a23a0121695a67e37f1c62de68a0d4d53cf10e0254e5e"
+    },
+    {
+      "name": "6dd15390fd96501dcd1454765a17ba61dbbd8d47705dfe5149c8dd92b353ce25",
+      "size": 7552,
+      "sha256": "6dd15390fd96501dcd1454765a17ba61dbbd8d47705dfe5149c8dd92b353ce25"
+    },
+    {
+      "name": "94729bf0e1781f6c2d4b26f070684ac42bf00d709c68c95fa5aecc02be06d29a",
+      "size": 926,
+      "sha256": "94729bf0e1781f6c2d4b26f070684ac42bf00d709c68c95fa5aecc02be06d29a"
+    },
+    {
+      "name": "9ba6337460e718b8baf165b23c02f39455e3d5757b1911505410c46bc88a86b5",
+      "size": 10708,
+      "sha256": "9ba6337460e718b8baf165b23c02f39455e3d5757b1911505410c46bc88a86b5"
+    },
+    {
+      "name": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+      "size": 14644,
+      "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3"
+    },
+    {
+      "name": "e57c5cc0b6c80180ac50f7b865ffd04e36bba039878667522fd3071083ed31a5",
+      "size": 1391,
+      "sha256": "e57c5cc0b6c80180ac50f7b865ffd04e36bba039878667522fd3071083ed31a5"
+    },
+    {
+      "name": "f360003d714ee2106bd0f8045bd0c660a997e1577a3db7dbd5d540265eec1c95",
+      "size": 515,
+      "sha256": "f360003d714ee2106bd0f8045bd0c660a997e1577a3db7dbd5d540265eec1c95"
+    },
+    {
+      "name": "oga-catalog.envelope",
+      "size": 1980,
+      "sha256": "698393d38f5f22fca0b0f513b4f880a2c38fc9d403c3ce9714ea403961766e0d"
+    },
+    {
+      "name": "sdc-catalog.envelope",
+      "size": 1061,
+      "sha256": "4ec9e5d0d9aa312aa0f7751fb9c756be2fe6f96b119b0231fffcd7bdc5475636"
+    }
+  ]
+}
