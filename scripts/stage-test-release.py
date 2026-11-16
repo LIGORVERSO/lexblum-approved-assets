@@ -13,7 +13,7 @@ if not isinstance(tag, str) or not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,80}', ta
 zip_path = pathlib.Path('bundles/testes') / (tag+'.zip')
 out = pathlib.Path('staging/testes') / tag
 items = request.get('assets', [])
-if not isinstance(items,list) or not (3 <= len(items) <= 2000):
+if not isinstance(items,list) or not (2 <= len(items) <= 2000):
     raise SystemExit('STAGING_MANIFEST_INVALID')
 expected = {}
 for item in items:
