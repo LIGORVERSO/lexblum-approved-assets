@@ -31,10 +31,12 @@ function gh(args){
  return r.stdout.trim();
 }
 function getExistingRelease(tag){
- const r=spawnSync('gh',['api',`repos/${REPO}/releases/tags/${tag}`],{encoding:'utf8',timeout:30000});
- if(r.status===0)return JSON.parse(r.stdout);
- if(r.status===1&&/404|Not Found/i.test(r.stderr||''))return null;
- bail('RELEASE_LOOKUP_UNCERTAIN');
+ // A draft release is not addressable through /releases/tags/{tag}.
+ // List releases to recover a complete, already-uploaded draft after interrupted runs.
+ const found=JSON.parse(gh(['api',`repos/${REPO}/releases?per_page=100`]))
+  .filter(item=>item.tag_name===tag);
+ if(found.length>1)bail('DUPLICATE_RELEASE_TAG');
+ return found[0]||null;
 }
 async function main(){
  if(!checkOnly&&process.env.GITHUB_REPOSITORY!==REPO)bail('WRONG_REPOSITORY');
@@ -92,18 +94,22 @@ async function main(){
  if(expected.size<1)bail('NO_OBJECTS');
  console.log(JSON.stringify({status:'VALIDATED_LOCAL_TEST_ASSETS',tag:req.tag,assets:files.length,checkOnly}));
  if(checkOnly)return;
- if(getExistingRelease(req.tag))bail('RELEASE_TAG_ALREADY_EXISTS');
- gh(['release','create',req.tag,...files,'-R',REPO,'--draft','--prerelease','--latest=false',
-     '--target','main','--title',`TESTES ${req.tag}`,'--notes','Technical test-only world packs. No canonical/production approval.']);
+ const existing=getExistingRelease(req.tag);
+ if(!existing){
+  gh(['release','create',req.tag,...files,'-R',REPO,'--draft','--prerelease','--latest=false',
+      '--target','main','--title',`TESTES ${req.tag}`,'--notes','Technical test-only world packs. No canonical/production approval.']);
+ }
  const uploaded=getExistingRelease(req.tag);
- if(!uploaded||!uploaded.draft||!Array.isArray(uploaded.assets)||uploaded.assets.length!==req.assets.length)bail('DRAFT_READBACK');
+ if(!uploaded||typeof uploaded.id!=='number'||!(uploaded.draft||uploaded.prerelease)||
+    !Array.isArray(uploaded.assets)||uploaded.assets.length!==req.assets.length)bail('DRAFT_READBACK');
  for(const item of req.assets){
   const a=uploaded.assets.find(x=>x.name===item.name);
   if(!a||a.size!==item.size||a.state!=='uploaded'||a.digest!=='sha256:'+item.sha256)bail('REMOTE_ASSET_READBACK:'+item.name);
  }
- gh(['release','edit',req.tag,'-R',REPO,'--draft=false','--prerelease','--latest=false']);
- const published=getExistingRelease(req.tag);
- if(!published||published.draft||!published.prerelease)bail('PRERELEASE_READBACK');
+ if(uploaded.draft)gh(['api','-X','PATCH',`repos/${REPO}/releases/${uploaded.id}`,
+     '-F','draft=false','-F','prerelease=true']);
+ const published=JSON.parse(gh(['api',`repos/${REPO}/releases/${uploaded.id}`]));
+ if(!published||published.draft||!published.prerelease||published.tag_name!==req.tag)bail('PRERELEASE_READBACK');
  const apiPath=`repos/${REPO}/contents/channels/testes.json`;
  let oldSha=null,oldTags={};
  const check=spawnSync('gh',['api',apiPath],{encoding:'utf8',timeout:30000});
