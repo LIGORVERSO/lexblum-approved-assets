@@ -1,0 +1,44 @@
+name: Publish Lexblum TESTES release
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'requests/testes/*.json'
+permissions:
+  contents: write
+concurrency:
+  group: lexblum-test-publisher
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout request and staged assets
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prepare Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require exactly one explicit request changed in this push
+        id: request
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$BEFORE" != 0000000000000000000000000000000000000000
+          mapfile -t requests < <(git diff --name-only "$BEFORE" "$AFTER" -- 'requests/testes/*.json')
+          test "${#requests[@]}" -eq 1
+          printf 'path=%s\n' "${requests[0]}" >> "$GITHUB_OUTPUT"
+      - name: Extract and verify approved TESTES assets from staged ZIP
+        env:
+          REQUEST_PATH: ${{ steps.request.outputs.path }}
+        run: python3 scripts/stage-test-release.py "$REQUEST_PATH"
+      - name: Validate, publish prerelease, verify asset hashes and advance TESTES pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_PATH: ${{ steps.request.outputs.path }}
+        run: node scripts/publish-test-channel.mjs "$REQUEST_PATH"
