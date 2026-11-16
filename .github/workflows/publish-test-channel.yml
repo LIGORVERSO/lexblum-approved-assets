@@ -33,6 +33,10 @@ jobs:
           mapfile -t requests < <(git diff --name-only "$BEFORE" "$AFTER" -- 'requests/testes/*.json')
           test "${#requests[@]}" -eq 1
           printf 'path=%s\n' "${requests[0]}" >> "$GITHUB_OUTPUT"
+      - name: Extract and verify approved TESTES assets from staged ZIP
+        env:
+          REQUEST_PATH: ${{ steps.request.outputs.path }}
+        run: python3 scripts/stage-test-release.py "$REQUEST_PATH"
       - name: Validate, publish prerelease, verify asset hashes and advance TESTES pointer
         env:
           GH_TOKEN: ${{ github.token }}
