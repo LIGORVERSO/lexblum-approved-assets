@@ -119,6 +119,10 @@ async function main(){
  const tags={...oldTags};
  for(const channel of changedChannels)tags[channel]=req.tag;
  const pointer={schema:'lexblum.test-channel-pointer.v1',channel:'TESTES',state:'PUBLISHED',repository:REPO,tags};
+ // A joint MT release remains consumable by the already deployed single-tag Worker.
+ // A later split never leaves a stale shared tag behind.
+ if(tags.oga&&tags.sdc&&tags.oga===tags.sdc&&
+    (!tags.resources||tags.resources===tags.oga))pointer.tag=tags.oga;
  const rawPointer=Buffer.from(JSON.stringify(pointer)+'\n').toString('base64');
  const change=['api','-X','PUT',apiPath,'-f',`message=publish(TESTES): ${req.tag}`,
   '-f',`content=${rawPointer}`,'-f','branch=main'];
