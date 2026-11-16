@@ -59,6 +59,6 @@
       "sha256": "4ec9e5d0d9aa312aa0f7751fb9c756be2fe6f96b119b0231fffcd7bdc5475636"
     }
   ],
-  "retrySequence": 1,
-  "retryReason": "Resume verified draft release after initial DRAFT_READBACK on GitHub draft tag lookup"
+  "retrySequence": 2,
+  "retryReason": "Run live Worker HTTPS/Ed25519/SHA/HEAD/Range verification of already published MT prerelease"
 }
