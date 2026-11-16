@@ -45,7 +45,7 @@ async function main(){
     !req.tag.includes('testes')||basename(requestPath)!==req.tag+'.json'||
     typeof req.publicKeyBase64!=='string'||
     !/^[A-Za-z0-9+/]{43}=$/.test(req.publicKeyBase64)||
-    !Array.isArray(req.assets)||req.assets.length<3||req.assets.length>2000||
+    !Array.isArray(req.assets)||req.assets.length<2||req.assets.length>2000||
     req.rightsReviewed!==true||req.secretScanReviewed!==true)
   bail('REQUEST_CONTRACT');
  const raw=Buffer.from(req.publicKeyBase64,'base64');
@@ -68,13 +68,16 @@ async function main(){
    try{data=JSON.parse(bytes.toString('utf8'));}catch{bail('ENVELOPE_JSON');}
    if(data.schema!=='lexblum.resource.envelope.v1'||data.payload?.channel!=='TESTES'||
       data.payload?.schema!=='lexblum.resource.catalog.v1'||
-      !Array.isArray(data.payload.objects)||!Array.isArray(data.payload.world?.files))bail('ENVELOPE_CONTRACT');
+      !Array.isArray(data.payload.objects))bail('ENVELOPE_CONTRACT');
    const signature=Buffer.from(data.signatureBase64||'','base64');
    if(signature.length!==64||!verify(null,Buffer.from(canonical(data.payload)),key,signature))bail('ENVELOPE_SIGNATURE');
    const worldId=item.name==='oga-catalog.envelope'?'oga.pl':
      item.name==='sdc-catalog.envelope'?'lexblum':null;
-   if(worldId&&data.payload.world?.id!==worldId)bail('WORLD_IDENTITY');
-   if(!data.payload.objects.length || !data.payload.objects.some(o=>o.kind==='WORLD_REGION'))bail('WORLD_REGION');
+   if(worldId){
+    if(data.payload.world?.id!==worldId||!Array.isArray(data.payload.world.files)||
+       !data.payload.objects.some(o=>o.kind==='WORLD_REGION'))bail('WORLD_IDENTITY_OR_REGION');
+   } else if(data.payload.world!==null)bail('RESOURCES_CATALOG_WORLD_NOT_NULL');
+   if(!data.payload.objects.length)bail('CATALOG_EMPTY');
    for(const object of data.payload.objects){
     if(!hex.test(object.sha256)||!Number.isSafeInteger(object.bytes)||object.bytes<=0)bail('CATALOG_OBJECT');
     const referenced=req.assets.find(x=>x.name===object.sha256);
@@ -82,9 +85,11 @@ async function main(){
    }
   }
  }
- if(!names.has('oga-catalog.envelope')||!names.has('sdc-catalog.envelope'))bail('TWO_WORLDS_REQUIRED');
+ const changedChannels=Object.entries({resources:'catalog.envelope',oga:'oga-catalog.envelope',sdc:'sdc-catalog.envelope'})
+   .filter(([,filename])=>names.has(filename)).map(([channel])=>channel);
+ if(!changedChannels.length)bail('NO_SIGNED_CATALOG');
  const expected=new Set(req.assets.filter(a=>hex.test(a.name)).map(a=>a.name));
- if(expected.size<2)bail('NO_OBJECTS');
+ if(expected.size<1)bail('NO_OBJECTS');
  console.log(JSON.stringify({status:'VALIDATED_LOCAL_TEST_ASSETS',tag:req.tag,assets:files.length,checkOnly}));
  if(checkOnly)return;
  if(getExistingRelease(req.tag))bail('RELEASE_TAG_ALREADY_EXISTS');
@@ -99,13 +104,22 @@ async function main(){
  gh(['release','edit',req.tag,'-R',REPO,'--draft=false','--prerelease','--latest=false']);
  const published=getExistingRelease(req.tag);
  if(!published||published.draft||!published.prerelease)bail('PRERELEASE_READBACK');
- const pointer={schema:'lexblum.test-channel-pointer.v1',channel:'TESTES',state:'PUBLISHED',repository:REPO,tag:req.tag};
- const rawPointer=Buffer.from(JSON.stringify(pointer)+'\n').toString('base64');
  const apiPath=`repos/${REPO}/contents/channels/testes.json`;
- let oldSha=null;
+ let oldSha=null,oldTags={};
  const check=spawnSync('gh',['api',apiPath],{encoding:'utf8',timeout:30000});
- if(check.status===0){oldSha=JSON.parse(check.stdout).sha;}
- else if(!/404|Not Found/i.test(check.stderr||''))bail('POINTER_LOOKUP_UNCERTAIN');
+ if(check.status===0){
+  const old=JSON.parse(check.stdout);oldSha=old.sha;
+  const prev=JSON.parse(Buffer.from(old.content.replace(/\s/g,''),'base64').toString('utf8'));
+  if(prev.schema!=='lexblum.test-channel-pointer.v1'||prev.channel!=='TESTES'||
+     prev.state!=='PUBLISHED'||prev.repository!==REPO)bail('EXISTING_POINTER_INVALID');
+  if(prev.tags&&typeof prev.tags==='object'&&!Array.isArray(prev.tags))oldTags=prev.tags;
+  else if(typeof prev.tag==='string')oldTags={resources:prev.tag,oga:prev.tag,sdc:prev.tag};
+  else bail('EXISTING_POINTER_FORMAT');
+ } else if(!/404|Not Found/i.test(check.stderr||''))bail('POINTER_LOOKUP_UNCERTAIN');
+ const tags={...oldTags};
+ for(const channel of changedChannels)tags[channel]=req.tag;
+ const pointer={schema:'lexblum.test-channel-pointer.v1',channel:'TESTES',state:'PUBLISHED',repository:REPO,tags};
+ const rawPointer=Buffer.from(JSON.stringify(pointer)+'\n').toString('base64');
  const change=['api','-X','PUT',apiPath,'-f',`message=publish(TESTES): ${req.tag}`,
   '-f',`content=${rawPointer}`,'-f','branch=main'];
  if(oldSha)change.push('-f',`sha=${oldSha}`);
