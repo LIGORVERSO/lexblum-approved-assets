@@ -54,7 +54,7 @@ for(const [path,id,name] of [
  const signature=Buffer.from(envelope.signatureBase64||'','base64');
  if(envelope.schema!=='lexblum.resource.envelope.v1'||signature.length!==64||
    !verify(null,Buffer.from(canonical(envelope.payload)),key,signature)||
-   envelope.payload.channel!=='TESTES'||envelope.payload.world?.id!==id)die('CATALOG_SIGNATURE_OR_ID_'+path);
+   envelope.payload.channel!=='TESTES'||(id===null?envelope.payload.world!==null:envelope.payload.world?.id!==id))die('CATALOG_SIGNATURE_OR_ID_'+path);
  const head=await fetchChecked(path,{method:'HEAD'});
  if(head.status!==200)die('HEAD_CATALOG_'+path+'_'+head.status);
  evidence.push({world:id,manifest:name,bytes:bytes.length,objects:envelope.payload.objects.length});
