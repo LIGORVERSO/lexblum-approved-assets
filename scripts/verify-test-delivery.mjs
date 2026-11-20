@@ -39,6 +39,7 @@ async function readLimited(res,limit,path){
 const expected=new Map(req.assets.map(x=>[x.name,x]));
 const evidence=[];
 for(const [path,id,name] of [
+ ['catalog.envelope',null,'catalog.envelope'],
  ['oga/catalog.envelope','oga.pl','oga-catalog.envelope'],
  ['sdc/catalog.envelope','lexblum','sdc-catalog.envelope']
 ]){
@@ -59,7 +60,9 @@ for(const [path,id,name] of [
  evidence.push({world:id,manifest:name,bytes:bytes.length,objects:envelope.payload.objects.length});
 }
 const objs=req.assets.filter(a=>/^[0-9a-f]{64}$/.test(a.name));
-if(evidence.length!==2||objs.length<2)die('TWO_WORLDS_NOT_PRESENT');
+const suppliedCatalogs=[...expected.keys()].filter(name=>name.endsWith('catalog.envelope'));
+if(!evidence.length||evidence.length!==suppliedCatalogs.length||objs.length<1)
+ die('INDEPENDENT_CHANNEL_MANIFEST_MISMATCH');
 for(const item of objs){
  const response=await fetchChecked(item.name);
  if(response.status!==200)die('OBJECT_HTTP_'+item.name+'_'+response.status);
