@@ -78,8 +78,9 @@ async function main(){
    if(worldId){
     if(data.payload.world?.id!==worldId||!Array.isArray(data.payload.world.files)||
        !data.payload.objects.some(o=>o.kind==='WORLD_REGION'))bail('WORLD_IDENTITY_OR_REGION');
-    // Signed private LAB candidates must never be mistaken for redistributable
-    // engineering tests. A label authorizing TESTES is not an exposure approval.
+    // Unfinished or unhomologated engineering worlds ARE eligible for TESTES.
+    // Block only material explicitly reserved, confidential or personal; a
+    // TESTES label does not authorize exposing private laboratory sources.
     const manifestAsset=req.assets.find(x=>x.name===data.payload.world.rootSha256);
     if(!manifestAsset||!data.payload.objects.some(x=>
         x.sha256===manifestAsset.name&&x.kind==='WORLD_MANIFEST'))
@@ -93,7 +94,7 @@ async function main(){
     const classification=[
        worldIndex.qualifier,worldIndex.qualification,worldIndex.sourceRevision
     ].join(' ');
-    if(/PRIVATE_LAB|UNHOMOLOGATED|CANON_REFERENCED|RESERVED|NOT_FOR_DISTRIBUTION/i.test(classification))
+    if(/PRIVATE_LAB|CANON_REFERENCED|RESERVED|NOT_FOR_DISTRIBUTION|CONFIDENTIAL|PERSONAL_DATA/i.test(classification))
       bail('PROTECTED_LAB_WORLD_EXPOSURE_FORBIDDEN');
    } else if(data.payload.world!==null)bail('RESOURCES_CATALOG_WORLD_NOT_NULL');
    if(!data.payload.objects.length)bail('CATALOG_EMPTY');
