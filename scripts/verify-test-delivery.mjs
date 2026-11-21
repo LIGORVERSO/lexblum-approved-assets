@@ -45,10 +45,20 @@ for(const [path,id,name] of [
 ]){
  const meta=expected.get(name);
  if(!meta)continue;
- const cat=await fetchChecked(path);
- if(cat.status!==200)die('CATALOG_HTTP_'+path+'_'+cat.status);
- const bytes=await readLimited(cat,6*1024*1024,path);
- if(bytes.length!==meta.size||hash(bytes)!==meta.sha256)die('CATALOG_BYTES_'+path);
+ // GitHub raw channel pointer/CDN can remain eventually consistent after a
+ // successful atomic release+pointer commit. Retry ONLY an out-of-date catalogue
+ // until the exact signed bytes arrive; never weaken SHA or signature checks.
+ let bytes,observedStatus;
+ const propagationDeadline=Date.now()+6*60*1000;
+ for(let attempt=0;;attempt++){
+   const cat=await fetchChecked(path);
+   observedStatus=cat.status;
+   bytes=cat.status===200?await readLimited(cat,6*1024*1024,path):null;
+   if(bytes&&bytes.length===meta.size&&hash(bytes)===meta.sha256)break;
+   if(Date.now()>=propagationDeadline)
+     die('CATALOG_PROPAGATION_TIMEOUT_'+path+'_'+observedStatus);
+   await new Promise(resolve=>setTimeout(resolve,Math.min(10000,1500*(attempt+1))));
+ }
  let envelope;
  try{envelope=JSON.parse(bytes.toString('utf8'))}catch{die('CATALOG_JSON_'+path)}
  const signature=Buffer.from(envelope.signatureBase64||'','base64');
